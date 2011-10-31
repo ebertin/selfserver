@@ -76,7 +76,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_selfserver_OBJECTS = fitswcs.$(OBJEXT) gettiles.$(OBJEXT) \
+am_selfserver_OBJECTS = fitswcs.$(OBJEXT) getsdsstiles.$(OBJEXT) \
 	main.$(OBJEXT) makeit.$(OBJEXT) prefs.$(OBJEXT)
 selfserver_OBJECTS = $(am_selfserver_OBJECTS)
 selfserver_DEPENDENCIES = $(top_builddir)/src/fits/libfits.a \
@@ -257,9 +257,9 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = fits wcs
-selfserver_SOURCES = fitswcs.c gettiles.c main.c makeit.c prefs.c \
-			  define.h diagnostic.h fitswcs.h gettiles.h globals.h \
-			  key.h prefs.h preflist.h types.h wcscelsys.h
+selfserver_SOURCES = fitswcs.c getsdsstiles.c main.c makeit.c prefs.c \
+			  define.h diagnostic.h fitswcs.h getsdsstiles.h \
+			  globals.h key.h prefs.h preflist.h types.h wcscelsys.h
 
 selfserver_LDADD = $(top_builddir)/src/fits/libfits.a \
 			  $(top_builddir)/src/wcs/libwcs_c.a
@@ -353,7 +353,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fitswcs.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gettiles.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getsdsstiles.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makeit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/prefs.Po@am__quote@

@@ -28,9 +28,9 @@
 
 SUBDIRS			= fits wcs
 bin_PROGRAMS		= selfserver
-selfserver_SOURCES	= fitswcs.c gettiles.c main.c makeit.c prefs.c \
-			  define.h diagnostic.h fitswcs.h gettiles.h globals.h \
-			  key.h prefs.h preflist.h types.h wcscelsys.h
+selfserver_SOURCES	= fitswcs.c getsdsstiles.c main.c makeit.c prefs.c \
+			  define.h diagnostic.h fitswcs.h getsdsstiles.h \
+			  globals.h key.h prefs.h preflist.h types.h wcscelsys.h
 selfserver_LDADD	= $(top_builddir)/src/fits/libfits.a \
 			  $(top_builddir)/src/wcs/libwcs_c.a
 
