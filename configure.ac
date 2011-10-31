@@ -91,6 +91,7 @@ AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 
 # Checks for libraries.
+AC_CHECK_LIB(m, sin)
 
 # Checks for header files.
 AC_HEADER_STDC

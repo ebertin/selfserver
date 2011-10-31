@@ -28,6 +28,7 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
+/*--------------------------- structure definitions -------------------------*/
 typedef struct sdsstile
   {
   double		ra, dec;	/* RA,Dec coordinates */
@@ -40,7 +41,19 @@ typedef struct sdsstile
 
 typedef struct sdsstilelist
   {
-  sdsstilestruct	*tile;
+  sdsstilestruct	*sdsstile;
   int			ntile;
   int			*hash;
   } sdsstileliststruct;
+
+/*---------------------------------- protos --------------------------------*/
+
+sdsstileliststruct	*sdsstiles_load(char *filename);
+char			**sdsstiles_get(sdsstileliststruct *sdsstilelist,
+				double ra, double dec, double radius,
+				char *prefix, char *band),
+			*sdsstiles_filename(sdsstilestruct *sdsstile,
+				char *prefix, char *band);
+
+void			sdsstiles_end(sdsstileliststruct *sdsstilelist);
+

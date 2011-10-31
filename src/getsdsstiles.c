@@ -33,9 +33,13 @@
 #endif
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "define.h"
+#include "types.h"
+#include "globals.h"
 #include "fits/fitscat.h"
 #include "fitswcs.h"
 #include "getsdsstiles.h"
@@ -44,45 +48,109 @@ static int	sdsstiles_cmp(const void *sdsstile1, const void *sdsstile2);
 
 /****** sdsstiles_get *********************************************************
 PROTO	char **sdsstiles_get(sdsstileliststruct *sdsstilelist, double *pos,
-			double radius)
+			double radius, char *prefix, char *band)
 PURPOSE	Return the list of filenames of SDSS tiles that overlap a selection
 	disk.
 INPUT	Pointer to the SDSS tile list,
 	center RA coordinate of the selection disk [deg],
 	center Dec coordinate of the selection disk [deg],
-	selection radius [deg].
+	selection radius [deg],
+	directory prefix,
+	band.
 OUTPUT	Pointer to the list of filenames.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	28/10/2011
+VERSION	31/10/2011
  ***/
 char	**sdsstiles_get(sdsstileliststruct *sdsstilelist, double ra, double dec,
-		double radius)
+		double radius, char *prefix, char *band)
   {
    sdsstilestruct	*sdsstilet;
-   double		decmin,decmax, radius2, dra*ddec;
-   int			i, istart, ntile;
+   double		decmin,decmax, radius2, dra,ddec;
+   char			**filenames;
+   int			f,i, istart, nmf, ntile;
 
   ntile = sdsstilelist->ntile;
   radius2 = radius*radius;
   decmin = dec-radius;
   decmax = dec+radius;
   if (dec<-90.0)
-    dec = -90.0
+    dec = -90.0;
   if (dec>90.0)
     dec = 90.0;
-  istart = sdsstilelist->hash[dec+(int)(dec+90.0000001)]
+  istart = sdsstilelist->hash[(int)(dec+90.0000001)];
   sdsstilet = &sdsstilelist->sdsstile[istart];
 /* Search in both directions around the position indicated in the hash table */
   for (i=istart+1; i-- && sdsstilet->dec>decmin; sdsstilet--);
   sdsstilet++;
+  f = 0;
+  nmf = 1;
+  QCALLOC(filenames, char *, MAXFILE);
   for (i=ntile-istart; i-- && sdsstilet->dec<decmax; sdsstilet++)
     {
     dra = (sdsstilet->ra - ra)*sdsstilet->cdec;
     ddec = sdsstilet->dec - dec;
     if (dra*dra+ddec*ddec<radius2)
-      sdsstiles_print(sdsstilet);
+      {
+      if ((f+1)>=nmf*MAXFILE)	/* Keep one extra slot for a NULL pointer */
+        {			/* which indicates the end of the array */
+        nmf++;
+        QREALLOC(filenames, char *, nmf*MAXFILE);
+        }
+      filenames[f++] = sdsstiles_filename(sdsstilet, prefix, band);
+      }
     }
+
+  return filenames;
+  }
+
+
+/****** sdsstiles_filename ****************************************************
+PROTO	char *sdsstiles_filename(sdsstilestruct *sdsstile, char *prefix,
+			char *band)
+PURPOSE	Print an SDSS file name based
+INPUT	Pointer to an SDSS tile,
+	directory prefix,
+	band.
+OUTPUT	Pointer to an allocated character string containing the SDSS filename.
+NOTES	-.
+AUTHOR	E. Bertin (IAP)
+VERSION	31/10/2011
+ ***/
+char	*sdsstiles_filename(sdsstilestruct *sdsstile, char *prefix, char *band)
+  {
+   char	*filename;
+
+  QMALLOC(filename, char, MAXCHAR);
+  sprintf(filename, "%s/%d/%d/frame-%s-%06d-%d-%04d.fits.bz2",
+	prefix,
+	sdsstile->run,
+	sdsstile->col,
+	band,
+	sdsstile->run,
+	sdsstile->col,
+	sdsstile->field);
+
+  return filename;
+  }
+
+
+/****** sdsstiles_end *********************************************************
+PROTO	void sdsstiles_end(sdsstileliststruct *sdsstilelist)
+PURPOSE	Free memory allocated for an SDSS tile list.
+INPUT	Pointer to the SDSS tile list.
+OUTPUT	-.
+NOTES	-.
+AUTHOR	E. Bertin (IAP)
+VERSION	31/10/2011
+ ***/
+void	sdsstiles_end(sdsstileliststruct *sdsstilelist)
+  {
+  free(sdsstilelist->sdsstile);
+  free(sdsstilelist->hash);
+  free(sdsstilelist);
+
+  return;
   }
 
 
@@ -115,26 +183,27 @@ INPUT	SDSS Catalog filename (e.g. "tiOutputFinal.fit").
 OUTPUT	Pointer to the tile list.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	28/10/2011
+VERSION	31/10/2011
  ***/
 sdsstileliststruct	*sdsstiles_load(char *filename)
   {
    sdsstileliststruct	*sdsstilelist;
-   sdsstilestruct	*sdsstile;
+   sdsstilestruct	*sdsstilet;
    catstruct		*cat;
    tabstruct		*tab;
    keystruct		*key;
-   double		*ra,*dec;
-   unsigned short	*field, *run;
-   unsigned char	*col, *rerun;
+   double		*ra,*dec,
+			delta;
+   unsigned int		*field, *run,
+			*col, *rerun;
    int			*hash,
 			i,j, ntile;
 
 /* Load the catalog data */
-  if (!(cat = read_cat(filename))
+  if (!(cat = read_cat(filename)))
     error(EXIT_FAILURE, "*Error*: cannot read ", filename);
 
-  tab = cat->tab;
+  tab = cat->tab->nexttab;
 
   read_keys(tab, NULL, NULL, 0, NULL);
 
@@ -158,12 +227,10 @@ sdsstileliststruct	*sdsstiles_load(char *filename)
   field = key->ptr;
 
 /* Copy the catalog data to a compact structure array */
-  QMALLOC(sdsstilelist, sdsstilestruct, tab->naxisn[1]);  
+  QMALLOC(sdsstilelist, sdsstileliststruct, 1);  
   sdsstilelist->ntile = tab->naxisn[1];
-  QMALLOC(sdsstile, sdsstilestruct, sdsstilelist->ntile);
-  sdsstilelist->sdsstile = sdsstile;
-
-  sdsstilet = sdsstile;
+  QMALLOC(sdsstilelist->sdsstile, sdsstilestruct, sdsstilelist->ntile);
+  sdsstilet = sdsstilelist->sdsstile;
   for (i=sdsstilelist->ntile; i--; sdsstilet++)
     {
     sdsstilet->ra = *(ra++);
@@ -179,19 +246,20 @@ sdsstileliststruct	*sdsstiles_load(char *filename)
   free_cat(&cat, 1);
 
 /* Sort by increasing declination */
-  qsort(sdsstile, sdsstilelist->ntile, sizeof(sdsstile), sdsstiles_cmp);
+  qsort(sdsstilelist->sdsstile, sdsstilelist->ntile, sizeof(sdsstilestruct),
+	sdsstiles_cmp);
 
 /* Build the hash table that contains the first tile in the sorted list */
 /* which may be in reach from the current declination */
   QMALLOC(sdsstilelist->hash, int, 180);
-  sdsstilet = sdsstile; /* This is where the 1st y coordinate is stored */
+  sdsstilet = sdsstilelist->sdsstile;
   hash = sdsstilelist->hash;
   delta = -90.0;
   j = 0;
   for (i=180; i--; delta+=1.0)
     {
 /*-- For safety, we keep a 1-pixel margin */
-    for (;j<ntile && *sdsstilet->dec<=delta; j++, sdsstilet++);
+    for (;j<ntile && sdsstilet->dec<=delta; j++, sdsstilet++);
     *(hash++) = j==ntile ? ntile-1 : j;
     }
 

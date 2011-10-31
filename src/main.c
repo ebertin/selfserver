@@ -43,6 +43,7 @@
 #include "globals.h"
 #include "fits/fitscat.h"
 #include "prefs.h"
+#include "getsdsstiles.h"
 
 #define		SYNTAX \
 EXECUTABLE " catalog1 [catalog2,...][@catalog_list1 [@catalog_list2 ...]]\n" \
@@ -60,12 +61,17 @@ int main(int argc, char *argv[])
 		*str,*listbuf;
    int		a, narg, nim, ntok, opt, opt2;
 
+   sdsstileliststruct	*sdsstilelist;
+   char			**sdssfilelist,
+			**list;
+
+
 #ifdef HAVE_SETLINEBUF
 /* flush output buffer at each line */
   setlinebuf(stderr);
 #endif
 
-  if (argc<2)
+  if (argc<1)
     {
     fprintf(OUTPUT, "\n         %s  version %s (%s)\n", BANNER,MYVERSION,DATE);
     fprintf(OUTPUT, "\nWritten by %s\n", AUTHORS);
@@ -75,11 +81,6 @@ int main(int argc, char *argv[])
     error(EXIT_SUCCESS, "SYNTAX: ", SYNTAX);
     }
 
-#ifdef HAVE_PLPLOT
-  if (argc>2)
-    plparseopts(&argc, (const char **)argv, PL_PARSE_SKIP);
-#endif
-
   QMALLOC(argkey, char *, argc);
   QMALLOC(argval, char *, argc);
 
@@ -88,7 +89,7 @@ int main(int argc, char *argv[])
   prefs.ncommand_line = argc;
   narg = nim = 0;
   listbuf = (char *)NULL;
-  strcpy(prefs.prefs_name, "default.psfex");
+  strcpy(prefs.prefs_name, "/etc/selfserver/selfserver.conf");
 
   for (a=1; a<argc; a++)
     {
@@ -119,10 +120,6 @@ int main(int argc, char *argv[])
             break;
           case 'h':
             fprintf(OUTPUT, "\nSYNTAX: %s", SYNTAX);
-#ifdef HAVE_PLPLOT
-            fprintf(OUTPUT, "\nPLPLOT-specific options:\n");
-            plparseopts(&argc, (const char **)argv, PL_PARSE_SKIP);
-#endif
             exit(EXIT_SUCCESS);
             break;
           default:
@@ -137,29 +134,28 @@ int main(int argc, char *argv[])
         }       
       }
     else
-      {
-/*---- The input image filename(s) */
-      for(; (a<argc) && (*argv[a]!='-'); a++)
-        {
-        str = (*argv[a] == '@'? listbuf=list_to_str(argv[a]+1) : argv[a]);
-        for (ntok=0; (str=strtok(ntok?NULL:str, notokstr)); nim++,ntok++)
-          if (nim<MAXFILE)
-            prefs.incat_name[nim] = str;
-          else
-            error(EXIT_FAILURE, "*Error*: Too many input catalogues: ", str);
-        }
-      a--;
-      }
+      error(EXIT_SUCCESS,"SYNTAX: ", SYNTAX);
     }
-
-  prefs.ncat = nim;
 
   readprefs(prefs.prefs_name, argkey, argval, narg);
   useprefs();
   free(argkey);
   free(argval);
 
-  makeit();
+  sdsstilelist = sdsstiles_load("data/sdss/tiOutputFinal.fit");
+  sdssfilelist = sdsstiles_get(sdsstilelist, 202.4682083, 47.1946667, 0.5,
+				prefs.sdss_path, prefs.sdss_band);
+  for (list=sdssfilelist; *list; list++)
+    {
+    printf("%s\n", *list);
+    free(*list);
+    }
+  free(sdssfilelist);
+  sdsstiles_end(sdsstilelist);
+
+
+
+//  makeit();
 
   free(listbuf);
 
