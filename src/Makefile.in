@@ -39,7 +39,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		31/10/2011
+#	Last modified:		14/11/2011
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -62,7 +62,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = selfserver$(EXEEXT)
+bin_PROGRAMS = selfserver$(EXEEXT) asclisttofits$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -76,7 +76,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_selfserver_OBJECTS = fitswcs.$(OBJEXT) getsdsstiles.$(OBJEXT) \
+am_asclisttofits_OBJECTS = asclisttofits.$(OBJEXT)
+asclisttofits_OBJECTS = $(am_asclisttofits_OBJECTS)
+asclisttofits_DEPENDENCIES = $(top_builddir)/src/fits/libfits.a
+am_selfserver_OBJECTS = fitswcs.$(OBJEXT) gettiles.$(OBJEXT) \
 	main.$(OBJEXT) makeit.$(OBJEXT) prefs.$(OBJEXT)
 selfserver_OBJECTS = $(am_selfserver_OBJECTS)
 selfserver_DEPENDENCIES = $(top_builddir)/src/fits/libfits.a \
@@ -94,8 +97,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(selfserver_SOURCES)
-DIST_SOURCES = $(selfserver_SOURCES)
+SOURCES = $(asclisttofits_SOURCES) $(selfserver_SOURCES)
+DIST_SOURCES = $(asclisttofits_SOURCES) $(selfserver_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -257,13 +260,15 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = fits wcs
-selfserver_SOURCES = fitswcs.c getsdsstiles.c main.c makeit.c prefs.c \
-			  define.h diagnostic.h fitswcs.h getsdsstiles.h \
+asclisttofits_SOURCES = asclisttofits.c asclisttofits.h
+selfserver_SOURCES = fitswcs.c gettiles.c main.c makeit.c prefs.c \
+			  define.h diagnostic.h fitswcs.h gettiles.h \
 			  globals.h key.h prefs.h preflist.h types.h wcscelsys.h
 
 selfserver_LDADD = $(top_builddir)/src/fits/libfits.a \
 			  $(top_builddir)/src/wcs/libwcs_c.a
 
+asclisttofits_LDADD = $(top_builddir)/src/fits/libfits.a
 DATE = `date +"%Y-%m-%d"`
 all: all-recursive
 
@@ -342,6 +347,9 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+asclisttofits$(EXEEXT): $(asclisttofits_OBJECTS) $(asclisttofits_DEPENDENCIES) 
+	@rm -f asclisttofits$(EXEEXT)
+	$(LINK) $(asclisttofits_OBJECTS) $(asclisttofits_LDADD) $(LIBS)
 selfserver$(EXEEXT): $(selfserver_OBJECTS) $(selfserver_DEPENDENCIES) 
 	@rm -f selfserver$(EXEEXT)
 	$(LINK) $(selfserver_OBJECTS) $(selfserver_LDADD) $(LIBS)
@@ -352,8 +360,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asclisttofits.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fitswcs.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getsdsstiles.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gettiles.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makeit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/prefs.Po@am__quote@

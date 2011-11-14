@@ -22,17 +22,19 @@
 #	You should have received a copy of the GNU General Public License
 #	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		31/10/2011
+#	Last modified:		14/11/2011
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBDIRS			= fits wcs
-bin_PROGRAMS		= selfserver
-selfserver_SOURCES	= fitswcs.c getsdsstiles.c main.c makeit.c prefs.c \
-			  define.h diagnostic.h fitswcs.h getsdsstiles.h \
+bin_PROGRAMS		= selfserver asclisttofits
+asclisttofits_SOURCES	= asclisttofits.c asclisttofits.h
+selfserver_SOURCES	= fitswcs.c gettiles.c main.c makeit.c prefs.c \
+			  define.h diagnostic.h fitswcs.h gettiles.h \
 			  globals.h key.h prefs.h preflist.h types.h wcscelsys.h
 selfserver_LDADD	= $(top_builddir)/src/fits/libfits.a \
 			  $(top_builddir)/src/wcs/libwcs_c.a
+asclisttofits_LDADD	= $(top_builddir)/src/fits/libfits.a
 
 DATE=`date +"%Y-%m-%d"`
 

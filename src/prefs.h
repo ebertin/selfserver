@@ -24,7 +24,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		31/10/2011
+*	Last modified:		14/11/2011
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -46,10 +46,11 @@ typedef struct
   char		**command_line;			/* Command line */
   int		ncommand_line;			/* nb of params */
   char		prefs_name[MAXCHAR];		/* prefs filename */
-  char		*(incat_name[MAXFILE]);		/* Filename(s) of input cats */
-  int		ncat;				/* Number of input images */
-  char		sdss_path[MAXCHAR];		/* SDSS root path */
-  char		sdss_band[MAXCHAR];		/* SDSS band */
+  char		*(tilelist_name[MAXFILE]);	/* Filename(s) of tile list(s)*/
+  int		ntilelist;			/* Number of tile lists */
+  char		image_list[MAXCHAR];		/* Image list */
+  char		image_prefix[MAXCHAR];		/* Image root path */
+  char		image_suffix[MAXCHAR];		/* Image extension */
 /* Multithreading */
   int		nthreads;			/* Number of active threads */
 /* Misc */

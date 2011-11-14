@@ -25,7 +25,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		31/10/2011
+*	Last modified:		14/11/2011
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -46,9 +46,10 @@ int	idummy;
 
 pkeystruct key[] =
  {
+  {"IMAGE_LIST", P_STRING, prefs.image_list},
+  {"IMAGE_PREFIX", P_STRING, prefs.image_prefix},
+  {"IMAGE_SUFFIX", P_STRING, prefs.image_suffix},
   {"NTHREADS", P_INT, &prefs.nthreads, 0, THREADS_PREFMAX},
-  {"SDSS_BAND", P_STRING, prefs.sdss_band},
-  {"SDSS_PATH", P_STRING, prefs.sdss_path},
   {"VERBOSE_TYPE", P_KEY, &prefs.verbose_type, 0,0, 0.0,0.0,
    {"QUIET","NORMAL","LOG","FULL",""}},
   {""}
@@ -63,10 +64,11 @@ char *default_prefs[] =
 "# EB " DATE,
 "#",
 " ",
-"#--------------------------------- SDSS --------------------------------------",
+"#--------------------------------- Images ------------------------------------",
 " ",
-"SDSS_PATH       groups/boss/photoObj/frames/301  # Root path to SDSS data",
-"SDSS_BAND       g                                # SDSS band",
+"IMAGE_LIST      data/sdss/sdss-r8_g.fits # FITS table with images and coords", 
+"IMAGE_PREFIX    \"\"            # Root path to image files",
+"IMAGE_SUFFIX    \"\"            # Image filename extension",
 " ",
 "#----------------------------- Miscellaneous ---------------------------------",
 " ",

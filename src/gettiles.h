@@ -1,7 +1,7 @@
 /*
-*				getsdsstiles.h
+*				gettiles.h
 *
-* Include file for getsdsstiles.c
+* Include file for gettiles.c
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -24,36 +24,34 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		31/10/2011
+*	Last modified:		14/11/2011
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /*--------------------------- structure definitions -------------------------*/
-typedef struct sdsstile
+typedef struct tile
   {
   double		ra, dec;	/* RA,Dec coordinates */
   double		cdec;		/* cos(Dec) */
-  unsigned short	run;		/* SDSS run */
-  unsigned char		rerun;		/* SDSS processing rerun */
-  unsigned char		col;		/* SDSS camcol */
-  unsigned short	field;		/* SDSS field */
-  }	sdsstilestruct;
+  char			*pathptr;	/* Pointer to image path */
+  }	tilestruct;
 
-typedef struct sdsstilelist
+typedef struct tilelist
   {
-  sdsstilestruct	*sdsstile;
+  tilestruct	*tile;
   int			ntile;
   int			*hash;
-  } sdsstileliststruct;
+  char			*path;
+  char			image_prefix[MAXCHAR];
+  char			image_suffix[MAXCHAR];
+  int			path_len;
+  } tileliststruct;
 
 /*---------------------------------- protos --------------------------------*/
 
-sdsstileliststruct	*sdsstiles_load(char *filename);
-char			**sdsstiles_get(sdsstileliststruct *sdsstilelist,
-				double ra, double dec, double radius,
-				char *prefix, char *band),
-			*sdsstiles_filename(sdsstilestruct *sdsstile,
-				char *prefix, char *band);
+tileliststruct		*tiles_load(char *filename, char *prefix, char *suffix);
+char			**tiles_get(tileliststruct *tilelist,
+				double ra, double dec, double radius);
 
-void			sdsstiles_end(sdsstileliststruct *sdsstilelist);
+void			tiles_end(tileliststruct *tilelist);
 

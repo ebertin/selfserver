@@ -73,6 +73,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc config AUTHORS BUGS ChangeLog COPYRIGHT HISTORY INSTALL LICENSE README THANKS
 %{_bindir}/@PACKAGE_NAME@
+%{_bindir}/asclisttofits
 %{_mandir}/man1/@PACKAGE_NAME@.1*
 %{_mandir}/manx/@PACKAGE_NAME@.x*
 %{_datadir}/@PACKAGE_NAME@

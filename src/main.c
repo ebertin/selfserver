@@ -24,7 +24,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		31/10/2011
+*	Last modified:		14/11/2011
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -43,10 +43,10 @@
 #include "globals.h"
 #include "fits/fitscat.h"
 #include "prefs.h"
-#include "getsdsstiles.h"
+#include "gettiles.h"
 
 #define		SYNTAX \
-EXECUTABLE " catalog1 [catalog2,...][@catalog_list1 [@catalog_list2 ...]]\n" \
+EXECUTABLE " <RA,<Dec>,<Radius>\n" \
 "\t\t[-c <config_file>][-<keyword> <value>]\n" \
 "> to dump a default configuration file: " EXECUTABLE " -d \n" \
 "> to dump a default extended configuration file: " EXECUTABLE " -dd \n"
@@ -57,12 +57,13 @@ extern const char       notokstr[];
 
 int main(int argc, char *argv[])
   {
-   char		**argkey, **argval,
-		*str,*listbuf;
-   int		a, narg, nim, ntok, opt, opt2;
+   char			**argkey, **argval,
+			*str,*listbuf,*ptr;
+   int			a, narg, nim, ntok, opt, opt2;
 
-   sdsstileliststruct	*sdsstilelist;
-   char			**sdssfilelist,
+   tileliststruct	*tilelist;
+   double		alpha,delta, radius;
+   char			**filelist,
 			**list;
 
 
@@ -87,7 +88,8 @@ int main(int argc, char *argv[])
 /* Default parameters */
   prefs.command_line = argv;
   prefs.ncommand_line = argc;
-  narg = nim = 0;
+  narg = 0;
+  prefs.ntilelist = 0;
   listbuf = (char *)NULL;
   strcpy(prefs.prefs_name, "/etc/selfserver/selfserver.conf");
 
@@ -134,7 +136,21 @@ int main(int argc, char *argv[])
         }       
       }
     else
-      error(EXIT_SUCCESS,"SYNTAX: ", SYNTAX);
+      {
+/*---- input coordinates */
+      str=strtok_r(argv[a], ";,", &ptr);
+      if (!str)
+        error(EXIT_FAILURE, "*Error*: incorrect input coordinates/radius", "");
+      alpha=atof(str);
+      str=strtok_r(NULL, ";,", &ptr);
+      if (!str)
+        error(EXIT_FAILURE, "*Error*: incorrect input coordinates/radius", "");
+      delta=atof(str);
+      str=strtok_r(NULL, ";,", &ptr);
+      if (!str)
+        error(EXIT_FAILURE, "*Error*: incorrect input coordinates/radius", "");
+      radius=atof(str);
+      }
     }
 
   readprefs(prefs.prefs_name, argkey, argval, narg);
@@ -142,18 +158,15 @@ int main(int argc, char *argv[])
   free(argkey);
   free(argval);
 
-  sdsstilelist = sdsstiles_load("data/sdss/tiOutputFinal.fit");
-  sdssfilelist = sdsstiles_get(sdsstilelist, 202.4682083, 47.1946667, 0.5,
-				prefs.sdss_path, prefs.sdss_band);
-  for (list=sdssfilelist; *list; list++)
+  tilelist = tiles_load(prefs.image_list,prefs.image_prefix,prefs.image_suffix);
+  filelist = tiles_get(tilelist, alpha,delta, radius);
+  for (list=filelist; *list; list++)
     {
     printf("%s\n", *list);
     free(*list);
     }
-  free(sdssfilelist);
-  sdsstiles_end(sdsstilelist);
-
-
+  free(filelist);
+  tiles_end(tilelist);
 
 //  makeit();
 
