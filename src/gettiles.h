@@ -7,7 +7,7 @@
 *
 *	This file part of:	SelfServer
 *
-*	Copyright:		(C) 2011 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2011-2013 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	Author:			Emmanuel Bertin (IAP)
 *
@@ -24,7 +24,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		14/11/2011
+*	Last modified:		11/02/2013
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -32,7 +32,6 @@
 typedef struct tile
   {
   double		ra, dec;	/* RA,Dec coordinates */
-  double		cdec;		/* cos(Dec) */
   char			*pathptr;	/* Pointer to image path */
   }	tilestruct;
 
@@ -40,7 +39,7 @@ typedef struct tilelist
   {
   tilestruct	*tile;
   int			ntile;
-  int			*hash;
+  unsigned int		*hash;
   char			*path;
   char			image_prefix[MAXCHAR];
   char			image_suffix[MAXCHAR];

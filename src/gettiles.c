@@ -7,7 +7,7 @@
 *
 *	This file part of:	SelfServer
 *
-*	Copyright:		(C) 2011 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2011-2013 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	Author:			Emmanuel Bertin (IAP)
 *
@@ -24,7 +24,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		14/11/2011
+*	Last modified:		11/02/2013
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -57,13 +57,13 @@ INPUT	Pointer to the tile list,
 OUTPUT	Pointer to the list of filenames.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	14/11/2011
+VERSION	11/02/2013
  ***/
 char	**tiles_get(tileliststruct *tilelist, double ra, double dec,
 		double radius)
   {
    tilestruct	*tilet;
-   double	decmin,decmax, radius2, dra,ddec;
+   double	decmin,decmax, radrad, cdec0,sdec0;
    char		format[MAXCHAR],
 		**filenames,
 		*filename;
@@ -71,13 +71,15 @@ char	**tiles_get(tileliststruct *tilelist, double ra, double dec,
 
   ntile = tilelist->ntile;
   pathlen = tilelist->path_len;
-  radius2 = radius*radius;
+  cdec0 = cos(dec*DEG);
+  sdec0 = sin(dec*DEG);
+  radrad=radius*DEG;
   decmin = dec-radius;
   decmax = dec+radius;
-  if (dec<-90.0)
-    dec = -90.0;
-  if (dec>90.0)
-    dec = 90.0;
+  if (decmin<-90.0)
+    decmin = -90.0;
+  if (decmax>90.0)
+    decmax = 90.0;
   istart = tilelist->hash[(int)(dec+90.0000001)];
   tilet = &tilelist->tile[istart];
 /* Search in both directions around the position indicated in the hash table */
@@ -90,9 +92,8 @@ char	**tiles_get(tileliststruct *tilelist, double ra, double dec,
 				tilelist->image_suffix);
   for (i=ntile-istart; i-- && tilet->dec<decmax; tilet++)
     {
-    dra = (tilet->ra - ra)*tilet->cdec;
-    ddec = tilet->dec - dec;
-    if (dra*dra+ddec*ddec<radius2)
+    if (acos(sdec0*sin(tilet->dec*DEG)
+	+cdec0*cos(tilet->dec*DEG)*cos((tilet->ra - ra)*DEG))<radrad)
       {
       if ((f+1)>=nmf*MAXFILE)	/* Keep one extra slot for a NULL pointer */
         {			/* which indicates the end of the array */
@@ -159,7 +160,7 @@ INPUT	Catalog filename (e.g. "sdss-r8_g.fits),
 OUTPUT	Pointer to the tile list.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	14/11/2011
+VERSION	11/02/2013
  ***/
 tileliststruct	*tiles_load(char *filename, char *prefix, char *suffix)
   {
@@ -218,7 +219,6 @@ tileliststruct	*tiles_load(char *filename, char *prefix, char *suffix)
     {
     tilet->ra = *(ra++);
     tilet->dec = *(dec++);
-    tilet->cdec = cos(tilet->dec*DEG);
     tilet->pathptr = path; path += pathlen;
     }
 
@@ -230,7 +230,7 @@ tileliststruct	*tiles_load(char *filename, char *prefix, char *suffix)
 
 /* Build the hash table that contains the first tile in the sorted list */
 /* which may be in reach from the current declination */
-  QMALLOC(tilelist->hash, int, 180);
+  QMALLOC(tilelist->hash, unsigned int, 180);
   tilet = tilelist->tile;
   hash = tilelist->hash;
   delta = -90.0;
