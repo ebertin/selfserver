@@ -24,7 +24,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		11/02/2013
+*	Last modified:		18/03/2013
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -57,7 +57,7 @@ INPUT	Pointer to the tile list,
 OUTPUT	Pointer to the list of filenames.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	11/02/2013
+VERSION	18/03/2013
  ***/
 char	**tiles_get(tileliststruct *tilelist, double ra, double dec,
 		double radius)
@@ -81,10 +81,11 @@ char	**tiles_get(tileliststruct *tilelist, double ra, double dec,
   if (decmax>90.0)
     decmax = 90.0;
   istart = tilelist->hash[(int)(dec+90.0000001)];
-  tilet = &tilelist->tile[istart];
+  tilet = &tilelist->tile[istart++];
 /* Search in both directions around the position indicated in the hash table */
-  for (i=istart+1; i-- && tilet->dec>decmin; tilet--);
+  for (; istart-- && tilet->dec>decmin; tilet--);
   tilet++;
+  istart++;
   f = 0;
   nmf = 1;
   QCALLOC(filenames, char *, MAXFILE);
@@ -92,7 +93,7 @@ char	**tiles_get(tileliststruct *tilelist, double ra, double dec,
 				tilelist->image_suffix);
   for (i=ntile-istart; i-- && tilet->dec<decmax; tilet++)
     {
-    if (acos(sdec0*sin(tilet->dec*DEG)
+   if (acos(sdec0*sin(tilet->dec*DEG)
 	+cdec0*cos(tilet->dec*DEG)*cos((tilet->ra - ra)*DEG))<radrad)
       {
       if ((f+1)>=nmf*MAXFILE)	/* Keep one extra slot for a NULL pointer */

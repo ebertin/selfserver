@@ -38,7 +38,9 @@
 #include "fits/fitscat.h"
 #include "asclisttofits.h"
 
-#define		SYNTAX  "asclisttofits -o output_FITS_catalog input_ASCII_catalog\n"
+#define	SYNTAX "asclisttofits <input_ASCII_catalog> [-o <output_FITS_catalog>]"\
+		"                                "\
+		"[-p <image_path_prefix>] [-s <image_suffix>]\n"
 extern const char	notokstr[];
 
 /********************************** main ************************************/
@@ -69,6 +71,7 @@ int	main(int argc, char *argv[])
 /* Default parameters */
   strcpy(prefix, "");
   strcpy(suffix, ".fits");
+  strcpy(fitsname, "list.fits");
   for (a=1; a<argc; a++)
     {
     if (*(argv[a]) == '-')

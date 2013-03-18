@@ -7,7 +7,7 @@
 #
 #	This file part of:	SelfServer
 #
-#	Copyright:		(C) 2011 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2011-2013 Emmanuel Bertin -- IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		31/10/2011
+#	Last modified:		18/03/2013
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -31,10 +31,10 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(selfserver, 0.1, [bertin@iap.fr])
+AC_INIT(selfserver, 0.3, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE
 date=`date +%Y-%m-%d`
 date2=`date +"%a %b %d %Y"`
@@ -55,7 +55,7 @@ cclist="cc gcc"
 
 AC_MSG_CHECKING([if compilation flags are set automatically])
 AC_ARG_ENABLE(auto-flags,
-	[AC_HELP_STRING([--enable-auto-flags],
+	[AS_HELP_STRING([--enable-auto-flags],
 	[Let the configure script choose the compilation flags \
 (off by default)])],
 	use_autoflag="yes"
@@ -66,7 +66,7 @@ AC_ARG_ENABLE(auto-flags,
 # Provide special option for the Linux Intel C compiler
 AC_MSG_CHECKING([for Linux Intel C compiler mode])
 AC_ARG_ENABLE(icc,
-	[AC_HELP_STRING([--enable-icc],
+	[AS_HELP_STRING([--enable-icc],
 	[Enable special mode for compilation with the Intel compiler \
 (off by default)])],
         use_icc="yes"
@@ -87,7 +87,7 @@ if test "$use_autoflag" = "yes"; then
   LDFLAGS =""
   ACX_PROG_CC_OPTIM
 fi
-AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_INSTALL
 
 # Checks for libraries.
@@ -126,41 +126,38 @@ AC_CHECK_FUNC([isinf], AC_DEFINE_UNQUOTED([HAVE_ISINF2], 1,
 AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
-# Provide special option for gprof profiling
-AC_MSG_CHECKING([for gprof profiler mode])
-AC_ARG_ENABLE(gprof,
-	[AC_HELP_STRING([--enable-gprof],
-	[Enable special mode for compilation with the gprof profiler \
-(off by default)])],
-        use_gprof="yes"
+# Provide special option for profiling
+AC_MSG_CHECKING([for profiler mode])
+AC_ARG_ENABLE(profiling,
+	[AS_HELP_STRING([--enable-profiling],
+	[Enable special mode for profiling (off by default)])]
 	AC_MSG_RESULT([yes]),
-        use_gprof="no"
 	AC_MSG_RESULT([no]))
 
 # Enable linking options for making the executable as portable as possible.
 AC_MSG_CHECKING([best linking option])
 AC_ARG_ENABLE(best-link,
-	[AC_HELP_STRING([--enable-best-link],
+	[AS_HELP_STRING([--enable-best-link],
 	[Choose the right combination of static and dynamic linking to make \
-the executable as portable as possible (off by default)])],
-        use_best="yes"
-	AC_MSG_RESULT([yes]),
-        use_best="no"
-	AC_MSG_RESULT([no]))
+the executable as portable as possible (off by default)])])
 
-# Link with gprof option
-if test "$use_gprof" = "yes"; then
-  if test "$use_icc" = "yes"; then
+# Compile with profiling option
+if test "$enable_profiling" = "yes"; then
+  if test "$enable_icc" = "yes"; then
     AM_CFLAGS="$AM_CFLAGS -pq"
   else
     AM_CFLAGS="$AM_CFLAGS -pg"
   fi
-  use_best="no"
+  enable_best_link="no"
 fi
 
 # "Best" linking option
-if test "$use_best" = "yes"; then
-  AM_LDFLAGS="-shared-libgcc -static-libtool-libs $AM_LDFLAGS"
+if test "$enable_best_link" = "yes"; then
+  if test "$enable_icc" = "yes"; then
+    AM_LDFLAGS="-static-intel -shared-libgcc -static-libtool-libs $AM_LDFLAGS"
+  else
+    AM_LDFLAGS="-shared-libgcc -static-libtool-libs $AM_LDFLAGS"
+  fi
 fi
 
 AC_SUBST(AM_CFLAGS)
