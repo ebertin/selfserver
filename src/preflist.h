@@ -8,7 +8,7 @@
 *
 *	This file part of:	SelfServer
 *
-*	Copyright:		(C) 2011 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2011-2018 -- IAP/CNRS/UPMC
 *
 *	Author:			Emmanuel Bertin (IAP)
 *
@@ -25,7 +25,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		14/11/2011
+*	Last modified:		23/03/2018
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -66,7 +66,7 @@ char *default_prefs[] =
 " ",
 "#--------------------------------- Images ------------------------------------",
 " ",
-"IMAGE_LIST      data/sdss/sdss-r8_g.fits # FITS table with images and coords", 
+"IMAGE_LIST      table.fits      # FITS table with images and coords", 
 "IMAGE_PREFIX    \"\"            # Root path to image files",
 "IMAGE_SUFFIX    \"\"            # Image filename extension",
 " ",

@@ -7,7 +7,7 @@
 #
 #	This file part of:	SelfServer
 #
-#	Copyright:		(C) 2011 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2011-2018 IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,13 +22,14 @@
 #	You should have received a copy of the GNU General Public License
 #	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		31/10/2011
+#	Last modified:		23/03/2018
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%define name @PACKAGE_NAME@
+%define name @PACKAGE_TARNAME@
 %define version @PACKAGE_VERSION@
-%define release 1
+%define release @PACKAGE_RELEASE@%{?dist}
+%define debug_package %{nil}
 %undefine _missing_build_ids_terminate_build
 
 Summary: a personal FITS image server
@@ -40,10 +41,6 @@ URL: http://astromatic.net/software/%{name}/
 License: GPL v3+
 Group: Sciences/Astronomy
 BuildRoot: %{_tmppath}/%{name}-buildroot
-BuildRequires: pkgconfig
-BuildRequires: fftw-devel >= 3.1
-BuildRequires: atlas-devel >= 3.6.0
-BuildRequires: plplot-devel >= 5.3.1
 
 %description
 SelfServer is a package that contains all the necessary tools to set up a
@@ -71,12 +68,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc config AUTHORS BUGS ChangeLog COPYRIGHT HISTORY INSTALL LICENSE README THANKS
-%{_bindir}/@PACKAGE_NAME@
+%doc data AUTHORS BUGS ChangeLog COPYRIGHT HISTORY INSTALL LICENSE README.md THANKS
+%{_bindir}/@PACKAGE_TARNAME@
 %{_bindir}/asclisttofits
-%{_mandir}/man1/@PACKAGE_NAME@.1*
-%{_mandir}/manx/@PACKAGE_NAME@.x*
-%{_datadir}/@PACKAGE_NAME@
+%{_mandir}/man1/@PACKAGE_TARNAME@.1*
+%{_mandir}/manx/@PACKAGE_TARNAME@.x*
+%{_datadir}/@PACKAGE_TARNAME@
 
 %changelog
 * @DATE2@ @PACKAGER@ <@PACKAGE_BUGREPORT@>

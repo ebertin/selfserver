@@ -1,7 +1,5 @@
 #
-#				Makefile.am
-#
-# src Makefile.am. Process this file with automake to generate a Makefile
+#				control
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
@@ -26,15 +24,14 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBDIRS			= fits wcs
-bin_PROGRAMS		= selfserver asclisttofits
-asclisttofits_SOURCES	= asclisttofits.c asclisttofits.h
-selfserver_SOURCES	= fitswcs.c gettiles.c main.c makeit.c prefs.c \
-			  define.h fitswcs.h gettiles.h \
-			  globals.h key.h prefs.h preflist.h types.h wcscelsys.h
-selfserver_LDADD	= $(srcdir)/fits/libfits.a \
-			  $(srcdir)/wcs/libwcs_c.a
-asclisttofits_LDADD	= $(srcdir)/fits/libfits.a
+Source: selfserver
+Section: science
+Priority: optional
+Maintainer: Emmanuel Bertin <bertin@iap.fr>
+Build-Depends: debhelper (>= 9)
+Homepage: https://github.com/ebertin/selfserver
 
-DATE=`date +"%Y-%m-%d"`
-
+Package: selfserver
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Query personal astronomical image dataset based on sky coordinates

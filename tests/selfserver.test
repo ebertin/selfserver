@@ -1,0 +1,4 @@
+#! /bin/sh
+# Copyright (C) 2011-2018 Emmanuel Bertin.
+# 
+../src/selfserver -v

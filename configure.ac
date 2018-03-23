@@ -7,7 +7,7 @@
 #
 #	This file part of:	SelfServer
 #
-#	Copyright:		(C) 2011-2013 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2011-2018 IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with SelfServer.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		18/03/2013
+#	Last modified:		23/03/2018
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -31,60 +31,64 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(selfserver, 0.3, [bertin@iap.fr])
-AC_CONFIG_SRCDIR(src/makeit.c)
+AC_INIT(SelfServer, 0.4,[bertin@@iap.fr],
+	selfserver, [https://github.com/ebertin/selfserver])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR(autoconf)
+AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE
 date=`date +%Y-%m-%d`
+date1=`date -R`
 date2=`date +"%a %b %d %Y"`
 date3=`date +"%B %Y"`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Archive creation date])
 AC_SUBST(PACKAGER, "Emmanuel Bertin")
+AC_SUBST(DATE1, "$date1")
 AC_SUBST(DATE2, "$date2")
 AC_SUBST(DATE3, "$date3")
 
 # Include macros
 sinclude(acx_prog_cc_optim.m4)
 
+# Provide a special option for setting the package release number
+AC_ARG_WITH(release,
+	[AS_HELP_STRING([--with-release=<release number>],
+	[set the package release number (default = 1)])],
+	[],
+	[with_release="no"])
+if test "$with_release" = "no"; then
+  with_release=1
+fi
+AC_SUBST(PACKAGE_RELEASE, "$with_release")
+
 # Display pakage and version number
-AC_MSG_RESULT([*********** Configuring:  $PACKAGE $VERSION ($date) **********])
+AC_MSG_RESULT([******** Configuring:  $PACKAGE_NAME $PACKAGE_VERSION - $PACKAGE_RELEASE ($date) ********])
 
-# Initialize the list of compilers to consider
-cclist="cc gcc"
-
+# Provide special option for choosing automatically the compilation flags.
 AC_MSG_CHECKING([if compilation flags are set automatically])
 AC_ARG_ENABLE(auto-flags,
 	[AS_HELP_STRING([--enable-auto-flags],
-	[Let the configure script choose the compilation flags \
-(off by default)])],
-	use_autoflag="yes"
+	[Let the configure script choose the compilation flags (default = no)])],
 	AC_MSG_RESULT([yes]),
-	use_autoflag="no"
 	AC_MSG_RESULT([no]))
 
 # Provide special option for the Linux Intel C compiler
-AC_MSG_CHECKING([for Linux Intel C compiler mode])
+AC_MSG_CHECKING([whether the INTEL compiler is enabled])
 AC_ARG_ENABLE(icc,
 	[AS_HELP_STRING([--enable-icc],
-	[Enable special mode for compilation with the Intel compiler \
-(off by default)])],
-        use_icc="yes"
-        cclist="icc $cclist"
+	[Use the Intel compiler (default = no)])],
+        CC="icc"
 	AC_MSG_RESULT([yes]),
-        use_icc="no"
 	AC_MSG_RESULT([no]))
 
 # Checks for programs.
-# GCC is chosen last because it is likely to yield less optimized code
 AC_LANG(C)
-AC_PROG_CC([$cclist])
-# C Compiler: Check that it is ANSI C and POSIX-compliant
-AM_PROG_CC_STDC
-AC_ISC_POSIX
-if test "$use_autoflag" = "yes"; then
+
+AC_SEARCH_LIBS([strerror],[cposix])
+if test "$enable_auto_flags" = "yes"; then
   CFLAGS=""
-  LDFLAGS =""
+  LDFLAGS=""
   ACX_PROG_CC_OPTIM
 fi
 LT_INIT
@@ -96,7 +100,8 @@ AC_CHECK_LIB(m, sin)
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h stdlib.h string.h sys/mman.h sys/types.h unistd.h])
-if test $use_icc = "yes" -a $CC = "icc"; then
+# Checks for INTEL math header files.
+if test "$enable_icc" = "yes"; then
   AC_CHECK_HEADERS(mathimf.h)
 fi
 
@@ -130,7 +135,7 @@ AC_FUNC_FSEEKO
 AC_MSG_CHECKING([for profiler mode])
 AC_ARG_ENABLE(profiling,
 	[AS_HELP_STRING([--enable-profiling],
-	[Enable special mode for profiling (off by default)])]
+	[Enable special mode for profiling (default = no)])]
 	AC_MSG_RESULT([yes]),
 	AC_MSG_RESULT([no]))
 
@@ -139,7 +144,10 @@ AC_MSG_CHECKING([best linking option])
 AC_ARG_ENABLE(best-link,
 	[AS_HELP_STRING([--enable-best-link],
 	[Choose the right combination of static and dynamic linking to make \
-the executable as portable as possible (off by default)])])
+the executable as portable as possible (default = no)])],
+	AC_MSG_RESULT([yes]),
+	AC_MSG_RESULT([no]))
+
 
 # Compile with profiling option
 if test "$enable_profiling" = "yes"; then
@@ -154,9 +162,10 @@ fi
 # "Best" linking option
 if test "$enable_best_link" = "yes"; then
   if test "$enable_icc" = "yes"; then
-    AM_LDFLAGS="-static-intel -shared-libgcc -static-libtool-libs $AM_LDFLAGS"
+    AM_LDFLAGS="-static-intel -shared-libgcc \
+	-static-libtool-libs -no-intel-extensions -avoid-version $AM_LDFLAGS"
   else
-    AM_LDFLAGS="-shared-libgcc -static-libtool-libs $AM_LDFLAGS"
+    AM_LDFLAGS="-shared-libgcc -static-libtool-libs -avoid-version $AM_LDFLAGS"
   fi
 fi
 
@@ -173,10 +182,14 @@ AC_MSG_RESULT([***************************************************************])
 
 AC_CONFIG_FILES([
 Makefile
+selfserver.spec
+debian/Makefile
+debian/changelog
 man/Makefile
+man/selfserver.1
 src/Makefile
 src/fits/Makefile
 src/wcs/Makefile
-selfserver.spec
-man/selfserver.1])
+tests/Makefile
+])
 AC_OUTPUT
