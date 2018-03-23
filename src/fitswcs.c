@@ -7,7 +7,7 @@
 *
 *	This file part of:	AstrOmatic software
 *
-*	Copyright:		(C) 1993-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 1993-2013 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -23,7 +23,7 @@
 *	along with AstrOmatic software.
 *	If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		10/10/2010
+*	Last modified:		27/11/2013
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -328,7 +328,7 @@ INPUT	tab structure.
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	30/07/2010
+VERSION	27/11/2013
  ***/
 wcsstruct	*read_wcs(tabstruct *tab)
 
@@ -406,7 +406,16 @@ wcsstruct	*read_wcs(tabstruct *tab)
         FITSREADF(buf, str, wcs->cd[l*naxis+j], l==j?1.0:0.0)
         }
     }
-  else if (fitsfind(buf, "PC00?00?")!=RETURN_ERROR)
+  else if (fitsfind(buf, "PC?_????")!=RETURN_ERROR)
+/*-- ...If PC keywords exist, use them for the linear mapping terms... */
+    for (l=0; l<naxis; l++)
+      for (j=0; j<naxis; j++)
+        {
+        sprintf(str, "PC%d_%d", l+1, j+1);
+        FITSREADF(buf, str, wcs->cd[l*naxis+j], l==j?1.0:0.0)
+        wcs->cd[l*naxis+j] *= wcs->cdelt[l];
+        }
+  else if (fitsfind(buf, "PC0??0??")!=RETURN_ERROR)
 /*-- ...If PC keywords exist, use them for the linear mapping terms... */
     for (l=0; l<naxis; l++)
       for (j=0; j<naxis; j++)
@@ -432,13 +441,15 @@ wcsstruct	*read_wcs(tabstruct *tab)
   if (!wcsset(wcs->naxis,(const char(*)[9])wcs->ctype, wcs->wcsprm)
 	&& wcs->wcsprm->flag<999)
     {
-     char	*pstr;
-     double	date;
-     int	biss, dpar[3];
+     char	*pstr, tstr[100];
+     double	date, dpar5, jdsec;
+     int	biss, dpar[5];
 
 /*-- Coordinate reference frame */
 /*-- Search for an observation date expressed in Julian days */
     FITSREADF(buf, "MJD-OBS ", date, -1.0);
+    if (date<0.0)
+      FITSREADF(buf, "MJDSTART", date, -1.0);
 /*-- Precession date (defined from Ephemerides du Bureau des Longitudes) */
 /*-- in Julian years from 2000.0 */
     if (date>0.0)
@@ -449,9 +460,11 @@ wcsstruct	*read_wcs(tabstruct *tab)
       FITSREADS(buf, "DATE-OBS", str, "");
       if (*str)
         {
-/*------ Decode DATE-OBS format: DD/MM/YY or YYYY-MM-DD */
-        for (l=0; l<3 && (pstr = strtok_r(l?NULL:str,"/- ", &ptr)); l++)
+/*------ Decode DATE-OBS format: DD/MM/YYThh:mm:ss[.sss] or YYYY-MM-DDThh:mm:ss[.sss] */
+        for (l=0; l<5 && (pstr = strtok_r(l?NULL:str,"/-T: ", &ptr)); l++)
           dpar[l] = atoi(pstr);
+        pstr = strtok_r(l?NULL:str,"/-T: ", &ptr);
+        dpar5 = atof(pstr);
         if (l<3 || !dpar[0] || !dpar[1] || !dpar[2])
           {
 /*-------- If DATE-OBS value corrupted or incomplete, assume 2000-1-1 */
@@ -467,9 +480,11 @@ wcsstruct	*read_wcs(tabstruct *tab)
 
         biss = (dpar[0]%4)?0:1;
 /*------ Convert date to MJD */
-        date = -678956 + (365*dpar[0]+dpar[0]/4) - biss
+        jdsec = (dpar5 + dpar[4] * 60. + dpar[3] * 3600.) / 86400.;
+        date = (-678956 + (365*dpar[0]+dpar[0]/4) - biss
 			+ ((dpar[1]>2?((int)((dpar[1]+1)*30.6)-63+biss)
-		:((dpar[1]-1)*(63+biss))/2) + dpar[2]);
+		:((dpar[1]-1)*(63+biss))/2) + dpar[2])) + jdsec;
+
         wcs->obsdate = 2000.0 - (MJD2000 - date)/365.25;
         }
       else
@@ -479,7 +494,8 @@ wcsstruct	*read_wcs(tabstruct *tab)
 
     FITSREADF(buf, "EPOCH", wcs->epoch, 2000.0);
     FITSREADF(buf, "EQUINOX", wcs->equinox, wcs->epoch);
-    FITSREADS(buf, "RADECSYS", str,
+    if (fitsread(buf, "RADESYS", str, H_STRING,T_STRING) != RETURN_OK)
+      FITSREADS(buf, "RADECSYS", str,
 	wcs->equinox >= 2000.0? "ICRS" : (wcs->equinox<1984.0? "FK4" : "FK5"));
     if (!strcmp(str, "ICRS"))
       wcs->radecsys = RDSYS_ICRS;
@@ -569,7 +585,8 @@ wcsstruct	*read_wcs(tabstruct *tab)
       }
     else
       {
-      FITSREADF(buf, "LONGPOLE", wcs->longpole, 999.0);
+      if (fitsread(buf, "LONPOLE",&wcs->longpole,H_FLOAT,T_DOUBLE) != RETURN_OK)
+        FITSREADF(buf, "LONGPOLE", wcs->longpole, 999.0);
       FITSREADF(buf, "LATPOLE ", wcs->latpole, 999.0);
 /*---- Old convention */
       if (fitsfind(buf, "PROJP???") != RETURN_ERROR)
@@ -613,7 +630,7 @@ INPUT	tab structure,
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	01/09/2010
+VERSION	06/12/2012
  ***/
 void	write_wcs(tabstruct *tab, wcsstruct *wcs)
 
@@ -641,26 +658,26 @@ void	write_wcs(tabstruct *tab, wcsstruct *wcs)
     addkeywordto_head(tab, "MJD-OBS ", "Modified Julian date at start");
     fitswrite(tab->headbuf, "MJD-OBS ", &mjd, H_EXPO,T_DOUBLE);
     }
-  addkeywordto_head(tab, "RADECSYS", "Astrometric system");
+  addkeywordto_head(tab, "RADESYS ", "Astrometric system");
   switch(wcs->radecsys)
     {
     case RDSYS_ICRS:
-      fitswrite(tab->headbuf, "RADECSYS", "ICRS", H_STRING, T_STRING);
+      fitswrite(tab->headbuf, "RADESYS ", "ICRS", H_STRING, T_STRING);
       break;
     case RDSYS_FK5:
-      fitswrite(tab->headbuf, "RADECSYS", "FK5", H_STRING, T_STRING);
+      fitswrite(tab->headbuf, "RADESYS ", "FK5", H_STRING, T_STRING);
       break;
     case RDSYS_FK4:
-      fitswrite(tab->headbuf, "RADECSYS", "FK4", H_STRING, T_STRING);
+      fitswrite(tab->headbuf, "RADESYS ", "FK4", H_STRING, T_STRING);
       break;
     case RDSYS_FK4_NO_E:
-      fitswrite(tab->headbuf, "RADECSYS", "FK4-NO-E", H_STRING, T_STRING);
+      fitswrite(tab->headbuf, "RADESYS ", "FK4-NO-E", H_STRING, T_STRING);
       break;
     case RDSYS_GAPPT:
-      fitswrite(tab->headbuf, "RADECSYS", "GAPPT", H_STRING, T_STRING);
+      fitswrite(tab->headbuf, "RADESYS ", "GAPPT", H_STRING, T_STRING);
       break;
     default:
-      error(EXIT_FAILURE, "*Error*: unknown RADECSYS type in write_wcs()", "");
+      error(EXIT_FAILURE, "*Error*: unknown RADESYS type in write_wcs()", "");
     }
   for (l=0; l<naxis; l++)
     {
@@ -683,7 +700,7 @@ void	write_wcs(tabstruct *tab, wcsstruct *wcs)
       fitswrite(tab->headbuf, str, &wcs->cd[l*naxis+j], H_EXPO, T_DOUBLE);
       }
     for (j=0; j<100; j++)
-      if (wcs->projp[j+100*l] != 0.0)
+      if (fabs(wcs->projp[j+100*l]) > TINY)
         {
         sprintf(str, "PV%d_%d", l+1, j);
         addkeywordto_head(tab, str, "Projection distortion parameter");
@@ -693,6 +710,43 @@ void	write_wcs(tabstruct *tab, wcsstruct *wcs)
 
 /* Update the tab data */
   readbasic_head(tab);
+
+  return;
+  }
+
+
+/******* wipe_wcs ***********************************************************
+PROTO	void wipe_wcs(tabstruct *tab)
+PURPOSE	Remove all WCS (World Coordinate System) info in a FITS header.
+INPUT	tab structure.
+OUTPUT	-.
+NOTES	-.
+AUTHOR	E. Bertin (IAP)
+VERSION	27/11/2013
+ ***/
+void	wipe_wcs(tabstruct *tab)
+
+  {
+  removekeywordfrom_head(tab, "CRVAL???");
+  removekeywordfrom_head(tab, "CTYPE???");
+  removekeywordfrom_head(tab, "CUNIT???");
+  removekeywordfrom_head(tab, "CRPIX???");
+  removekeywordfrom_head(tab, "CRDER???");
+  removekeywordfrom_head(tab, "CSYER???");
+  removekeywordfrom_head(tab, "CDELT???");
+  removekeywordfrom_head(tab, "CROTA???");
+  removekeywordfrom_head(tab, "CD?_????");
+  removekeywordfrom_head(tab, "PROJP_??");
+  removekeywordfrom_head(tab, "PV?_????");
+  removekeywordfrom_head(tab, "PC?_????");
+  removekeywordfrom_head(tab, "PC0??0??");
+  removekeywordfrom_head(tab, "EQUINOX?");
+  removekeywordfrom_head(tab, "RADESYS?");
+  removekeywordfrom_head(tab, "RADECSYS");
+  removekeywordfrom_head(tab, "LONPOLE?");
+  removekeywordfrom_head(tab, "LONGPOLE");
+  removekeywordfrom_head(tab, "LATPOLE?");
+  removekeywordfrom_head(tab, "WAT?????");
 
   return;
   }
@@ -743,18 +797,19 @@ INPUT	Proposed projection code name.
 OUTPUT	RETURN_OK if projection is supported, RETURN_ERROR otherwise.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	24/05/2000
+VERSION	14/06/2012
  ***/
 int	wcs_supproj(char *name)
 
   {
-   char	projcode[26][5] =
-	{"AZP", "TAN", "SIN", "STG", "ARC", "ZPN", "ZEA", "AIR", "CYP", "CAR",
-	"MER", "CEA", "COP", "COD", "COE", "COO", "BON", "PCO", "GLS", "PAR",
-	"AIT", "MOL", "CSC", "QSC", "TSC", "NONE"};
+   char	projcode[28][5] =
+	{"TAN", "TPV", "AZP", "SIN", "STG", "ARC", "ZPN", "ZEA", "AIR", "CYP",
+	"CAR", "MER", "CEA", "COP", "COD", "COE", "COO", "BON", "PCO", "GLS",
+	"PAR", "AIT", "MOL", "CSC", "QSC", "TSC", "TNX", "NONE"};
+
    int	i;
 
-  for (i=0; i<26; i++)
+  for (i=0; i<28; i++)
     if (!strcmp(name, projcode[i]))
       return RETURN_OK;
 
@@ -769,7 +824,7 @@ INPUT	WCS structure.
 OUTPUT	-.
 NOTES	.
 AUTHOR	E. Bertin (IAP)
-VERSION	06/11/2003
+VERSION	20/11/2012
  ***/
 void	invert_wcs(wcsstruct *wcs)
 
@@ -778,7 +833,7 @@ void	invert_wcs(wcsstruct *wcs)
    double		pixin[NAXIS],raw[NAXIS],rawmin[NAXIS];
    double		*outpos,*outpost, *lngpos,*lngpost,
 			*latpos,*latpost,
-			lngstep,latstep, rawsize, epsilon;
+			lngstep,latstep, lngposo,latposo,rawsize, epsilon;
    int			group[] = {1,1};
 				/* Don't ask, this is needed by poly_init()! */
    int		i,j,lng,lat,deg, tnxflag, maxflag;
@@ -788,7 +843,8 @@ void	invert_wcs(wcsstruct *wcs)
   lat = wcs->wcsprm->lat;
   if (!strcmp(wcs->wcsprm->pcode, "TNX"))
     tnxflag = 1;
-  else if (!strcmp(wcs->wcsprm->pcode, "TAN")
+  else if ((!strcmp(wcs->wcsprm->pcode, "TAN")
+	|| !strcmp(wcs->wcsprm->pcode, "TPV"))
 		&& (wcs->projp[1+lng*100] || wcs->projp[1+lat*100]))
     tnxflag = 0;
   else
@@ -845,13 +901,15 @@ void	invert_wcs(wcsstruct *wcs)
   epsilon = WCS_INVACCURACY/rawsize;
 /* Find the lowest degree polynom */
   poly = NULL;  /* to avoid gcc -Wall warnings */
+/*
   maxflag = 1;
   for (deg=1; deg<=WCS_INVMAXDEG && maxflag; deg++)
     {
     if (deg>1)
       poly_end(poly);
     poly = poly_init(group, 2, &deg, 1);
-    poly_fit(poly, outpos, lngpos, NULL, WCS_NGRIDPOINTS2, NULL);
+    poly_fit(poly, outpos, lngpos, NULL, WCS_NGRIDPOINTS2, NULL,
+	1.0e-9/WCS_NGRIDPOINTS2);
     maxflag = 0;
     outpost = outpos;
     lngpost = lngpos;
@@ -862,13 +920,30 @@ void	invert_wcs(wcsstruct *wcs)
         break;
         }
     }
-  if (maxflag)
-    warning("Significant inaccuracy likely to occur in projection","");
+*/
+  maxflag = 0;
+  outpost = outpos;
+  lngpost = lngpos;
+  latpost = latpos;
+  for (i=WCS_NGRIDPOINTS2; i--; outpost+=2, lngpost++,latpost++)
+    {
+    pv_to_raw(wcs->prj, outpost[0],outpost[1], &lngposo,&latposo);
+    if (fabs(lngposo-*lngpost)>epsilon || fabs(latposo-*latpost)>epsilon)
+      {
+      maxflag = 1;
+      break;
+      }
+    }
+
+//  if (maxflag)
+//    warning("Significant inaccuracy likely to occur in projection","");
+
 /* Now link the created structure */
-  wcs->prj->inv_x = wcs->inv_x = poly;
+//  wcs->prj->inv_x = wcs->inv_x = poly;
 
 /* Invert "latitude" */
 /* Compute the extent of the pixel in reduced projected coordinates */
+/*
   linrev(rawmin, wcs->lin, pixin);
   pixin[lat] += ARCSEC/DEG;
   linfwd(pixin, wcs->lin, raw);
@@ -878,14 +953,15 @@ void	invert_wcs(wcsstruct *wcs)
     error(EXIT_FAILURE, "*Error*: incorrect linear conversion in ",
 		wcs->wcsprm->pcode);
   epsilon = WCS_INVACCURACY/rawsize;
-/* Find the lowest degree polynom */
+* Find the lowest degree polynom *
   maxflag = 1;
   for (deg=1; deg<=WCS_INVMAXDEG && maxflag; deg++)
     {
     if (deg>1)
       poly_end(poly);
     poly = poly_init(group, 2, &deg, 1);
-    poly_fit(poly, outpos, latpos, NULL, WCS_NGRIDPOINTS2, NULL);
+    poly_fit(poly, outpos, latpos, NULL, WCS_NGRIDPOINTS2, NULL,
+	1.0e-9/WCS_NGRIDPOINTS2);
     maxflag = 0;
     outpost = outpos;
     latpost = latpos;
@@ -896,11 +972,13 @@ void	invert_wcs(wcsstruct *wcs)
         break;
         }
     }
+
   if (maxflag)
     warning("Significant inaccuracy likely to occur in projection","");
-/* Now link the created structure */
-  wcs->prj->inv_y = wcs->inv_y = poly;
 
+* Now link the created structure *
+  wcs->prj->inv_y = wcs->inv_y = poly;
+*/
 /* Free memory */
   free(outpos);
   free(lngpos);
@@ -1049,23 +1127,23 @@ void	range_wcs(wcsstruct *wcs)
 
 
 /******* frame_wcs ***********************************************************
-PROTO	void frame_wcs(wcsstruct *wcsin, wcsstruct *wcsout)
+PROTO	int frame_wcs(wcsstruct *wcsin, wcsstruct *wcsout)
 PURPOSE	Find the x and y limits of an input frame in an output image.
 INPUT	WCS structure of the input frame,
 	WCS structure of the output frame.
-OUTPUT	-.
-NOTES	.
+OUTPUT	1 if frames overlap, 0 otherwise.
+NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	29/12/2004
+VERSION	26/03/2012
  ***/
-void	frame_wcs(wcsstruct *wcsin, wcsstruct *wcsout)
+int	frame_wcs(wcsstruct *wcsin, wcsstruct *wcsout)
 
   {
    double		rawin[NAXIS], rawout[NAXIS], world[NAXIS];
    int			linecount[NAXIS];
    double		worldc;
    int			*min, *max,
-			i,j, naxis, npoints, out, swapflag;
+			i,j, naxis, npoints, out, swapflag, overlapflag;
 
   naxis = wcsin->naxis;
 
@@ -1118,7 +1196,7 @@ void	frame_wcs(wcsstruct *wcsin, wcsstruct *wcsout)
       }
     }
 
-/* Just add a little margin, in case of... */
+/* Add a little margin, just in case... */
   for (i=0; i<naxis; i++)
     {
     if (min[i]>-2147483647)
@@ -1127,7 +1205,16 @@ void	frame_wcs(wcsstruct *wcsin, wcsstruct *wcsout)
       max[i] += 2;
     }
 
-  return;
+/* Check overlap */
+  overlapflag = 1;
+  for (i=0; i<naxis; i++)
+    if (min[i]>wcsout->naxisn[i] || max[i]<0)
+      {
+      overlapflag = 0;
+      break;
+      }
+
+  return overlapflag;
   }
 
 
@@ -1569,7 +1656,7 @@ double	wcs_scale(wcsstruct *wcs, double *pixpos)
 
 /****** wcs jacobian *********************************************************
 PROTO	double wcs_jacobian(wcsstruct *wcs, double *pixpos, double *jacob)
-PURPOSE	Compute the local Jacobian matrice of the astrometric deprojection.
+PURPOSE	Compute the local Jacobian matrix of the astrometric deprojection.
 INPUT	WCS structure,
 	Pointer to the array of local raw coordinates,
 	Pointer to the jacobian array (output).
@@ -1612,6 +1699,70 @@ double	wcs_jacobian(wcsstruct *wcs, double *pixpos, double *jacob)
         }
       jacob[j*naxis+i] = dpos;
       }
+    }
+
+  if (lng==lat)
+    {
+    lng = 0;
+    lat = 1;
+    }
+
+  return fabs(jacob[lng+naxis*lng]*jacob[lat+naxis*lat]
+		- jacob[lat+naxis*lng]*jacob[lng+naxis*lat]);
+  }
+
+
+/****** wcs rawtoraw *********************************************************
+PROTO	double wcs_rawtoraw(wcsstruct *wcsin, wcsstruct *wcsout,
+		double *pixpos, double *jacob)
+PURPOSE	Convert raw coordinates from input wcs structure to raw coordinates
+	from output wcs structure, and the local Jacobian matrix of the
+	reprojection.
+INPUT	WCS input structure,
+	WCS output structure,
+	pointer to the array of local input raw coordinates,
+	pointer to the array of local output raw coordinates (output),
+	pointer to the jacobian array (output).
+OUTPUT	Determinant over spatial coordinates (ratio of pixel areas),
+	0.0 if jacob is NULL (Jacobian not computed in that case),
+	or -1.0 if mapping was unsuccesful.
+NOTES   Memory must have been allocated (naxis*naxis*sizeof(double)) for the
+        Jacobian array.
+AUTHOR	E. Bertin (IAP)
+VERSION	12/06/2012
+ ***/
+double	wcs_rawtoraw(wcsstruct *wcsin, wcsstruct *wcsout,
+		double *pixposin, double *pixposout, double *jacob)
+  {
+   double	pixpos0[NAXIS], pixpos2[NAXIS], wcspos[NAXIS];
+   int		i,j, lng,lat,naxis;
+
+  naxis = wcsin->naxis;
+  for (i=0; i<naxis; i++)
+    pixpos0[i] = pixposin[i];
+
+/* Coordinate transformation */
+  if (raw_to_wcs(wcsin, pixposin, wcspos) == RETURN_ERROR)
+    return -1.0;
+  if (wcs_to_raw(wcsout, wcspos, pixposout) == RETURN_ERROR)
+    return -1.0;
+ 
+/* Jacobian */
+  if (!jacob)
+    return 0.0;
+
+  lng = wcsin->lng;
+  lat = wcsin->lat;
+  for (i=0; i<naxis; i++)
+    {
+    pixpos0[i] += 1.0;
+    if (raw_to_wcs(wcsin, pixpos0, wcspos) == RETURN_ERROR)
+      return -1.0;
+    if (wcs_to_raw(wcsout, wcspos, pixpos2) == RETURN_ERROR)
+      return -1.0;
+    pixpos0[i] -= 1.0;
+    for (j=0; j<naxis; j++)
+      jacob[j*naxis+i] = pixpos2[j] - pixposout[j];
     }
 
   if (lng==lat)
